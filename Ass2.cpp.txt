@@ -1,0 +1,58 @@
+#include <opencv2/opencv.hpp>
+#include <iostream>
+
+using namespace cv;
+
+int main()
+{
+    // Load the input image
+    Mat input_image = imread("C:/Users/harzh/Downloads/Ass2.jpg");
+
+    if (input_image.empty())
+    {
+        std::cerr << "Failed to load image" << std::endl;
+        return 1;
+    }
+
+    // Convert the image to HSV color space
+    Mat hsv_image;
+    cvtColor(input_image, hsv_image, COLOR_BGR2HSV);
+
+    // Threshold the image to extract the elephant
+    Mat mask;
+    inRange(hsv_image, Scalar(14, 11, 18), Scalar(255, 255, 200), mask);
+
+    // Find the largest contour (assuming it's the elephant)
+    std::vector<std::vector<Point>> contours;
+    findContours(mask, contours, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
+    double max_area = 0;
+    std::vector<Point> largest_contour;
+    for (const auto& contour : contours)
+    {
+        double area = contourArea(contour);
+        if (area > max_area)
+        {
+            max_area = area;
+            largest_contour = contour;
+        }
+    }
+
+    // Create a mask for the elephant contour
+    Mat elephant_mask = Mat::zeros(mask.size(), CV_8UC1);
+    drawContours(elephant_mask, std::vector<std::vector<Point>>{largest_contour}, 0, Scalar(255), FILLED);
+
+    // Apply the mask to the input image to extract the elephant
+    Mat elephant_image;
+    input_image.copyTo(elephant_image, elephant_mask);
+
+    // Create a white background
+    Mat white_background(input_image.size(), CV_8UC3, Scalar(255, 255, 255));
+
+    // Copy the elephant onto the white background
+    elephant_image.copyTo(white_background, elephant_mask);
+
+    // Save the extracted image with a white background
+    imwrite("C:/Users/harzh/Downloads/Ass2.jpg", white_background);
+
+    return 0;
+}
